@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render,redirect
 from .forms import TodoForm
 from .models import TODO
@@ -29,21 +30,30 @@ def retrieve(request):
         todos=[]
     return render(request,'retrieve.html',{'todos':todos})
 
+
 def update(request,id):
+
     todos=TODO.objects.get(id=id)
     form=TodoForm(instance=todos)
-    if request.method=='POST':
-            # print(request.POST)
-        form=TodoForm(request.POST,instance=todos)
-        if form.is_valid():
-            form.save()
-            return redirect('/retrieve')
-    return render(request,'create.html',{'form':form})
+    if request.user == todos.user:
+    
+        if request.method=='POST':
+                # print(request.POST)
+            form=TodoForm(request.POST,instance=todos)
+            if form.is_valid():
+                form.save()
+                return redirect('/retrieve')
+        return render(request,'create.html',{'form':form})
+    else:
+        return HttpResponse("arkako login garxas")
 
 def delete(request,id):
     todos=TODO.objects.get(id=id)
-    todos.delete()
-    return redirect('retrieve')
+    if request.user == todos.user:
+        todos.delete()
+        return redirect('retrieve')
+    else:
+        return HttpResponse("delete nagar arkako")
     
     
 def register(request):
@@ -74,3 +84,6 @@ def loginn(request):
 def logoutt(request):
     logout(request)
     return redirect('retrieve')
+
+def search(request):
+    return render(request,'search.html')
