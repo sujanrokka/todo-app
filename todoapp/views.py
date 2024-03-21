@@ -86,4 +86,5 @@ def logoutt(request):
     return redirect('retrieve')
 
 def search(request):
-    return render(request,'search.html')
+    query=request.GET.get('query')
+    return render(request,'search.html',{'query':query})
