@@ -5,6 +5,8 @@ from .models import TODO
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+
 
 
 # Create your views here.
@@ -32,7 +34,6 @@ def retrieve(request):
 
 
 def update(request,id):
-
     todos=TODO.objects.get(id=id)
     form=TodoForm(instance=todos)
     if request.user == todos.user:
@@ -45,7 +46,7 @@ def update(request,id):
                 return redirect('/retrieve')
         return render(request,'create.html',{'form':form})
     else:
-        return HttpResponse("arkako login garxas")
+        return HttpResponse("cannot update")
 
 def delete(request,id):
     todos=TODO.objects.get(id=id)
@@ -53,7 +54,7 @@ def delete(request,id):
         todos.delete()
         return redirect('retrieve')
     else:
-        return HttpResponse("delete nagar arkako")
+        return redirect('login')
     
     
 def register(request):
@@ -68,23 +69,35 @@ def register(request):
                                  email=email,
         )
         return redirect('retrieve')
-    return render(request, 'register.html')
-    
+    return render(request, 'register.html')    
     
 def loginn(request):
-    if request.method=="POST":
-        username=request.POST.get('username')
-        password=request.POST.get('password')
-        user =authenticate(request,username=username,password=password)
-        if user is not None:
-            login(request,user)
-            return redirect('retrieve')
-    return render(request, 'login.html')
+    if request.user.is_authenticated:
+        return redirect('retrieve')
+    else:
+        if request.method=="POST":
+            username=request.POST.get('username')
+            password=request.POST.get('password')
+            user =authenticate(request,username=username,password=password)
+            if user is not None:
+                login(request,user)
+                return redirect('retrieve')
+        return render(request, 'login.html')
 
 def logoutt(request):
     logout(request)
     return redirect('retrieve')
 
+@login_required(login_url="login")
 def search(request):
-    query=request.GET.get('query')
-    return render(request,'search.html',{'query':query})
+        query=request.GET.get('query')
+        if query:
+            results=TODO.objects.filter(Q(title__icontains=query) & Q(user=request.user))
+        else:
+             results=None
+        if not results: 
+            return render(request, 'no_results.html')
+        else:
+            return render(request, 'search.html', {'results': results})
+        
+       
